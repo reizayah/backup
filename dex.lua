@@ -70,14 +70,7 @@ local function resolvePlayer(target)
 		return target
 	end
 	if type(target) == "string" then
-		local found = service.Players:FindFirstChild(target)
-		if found then
-			return found
-		end
-		repeat
-			found = service.Players.PlayerAdded:wait()
-		until found.Name == target
-		return found
+		return service.Players:FindFirstChild(target) or service.Players:WaitForChild(target)
 	end
 	return service.Players.LocalPlayer or service.Players.PlayerAdded:wait()
 end
