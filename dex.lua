@@ -11848,7 +11848,7 @@ Main = (function()
 
 	local function fetchUrl(url, label)
 		if not oldgame or not oldgame.HttpGet then
-			error("HTTP GET UNAVAILABLE: Required game HttpGet is missing")
+			error("HTTP GET UNAVAILABLE: Required oldgame.HttpGet is missing")
 		end
 		local success, result = pcall(oldgame.HttpGet, oldgame, url)
 		if not success then
@@ -11865,8 +11865,8 @@ Main = (function()
 		local function fetchApiDump()
 			local version = tostring(Main.RobloxVersion or "")
 			local hash = version:match("^version%-(%x+)$") or version:match("^(%x+)$")
-			if not hash then
-				error("INVALID ROBLOX VERSION")
+			if not hash or not hash:match("^%x+$") then
+				error("INVALID ROBLOX VERSION: "..version)
 			end
 			local url = ("https://setup.roblox.com/version-%s-API-Dump.json"):format(hash)
 			return fetchUrl(url, "API DUMP")
