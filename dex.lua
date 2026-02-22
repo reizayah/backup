@@ -30,6 +30,66 @@ local service = setmetatable({}, {
 local oldgame = game
 local game = workspace.Parent
 
+local plr
+local fallbackMouse = (function()
+	local event = Instance.new("BindableEvent")
+	return {
+		X = 0,
+		Y = 0,
+		ViewSizeX = 0,
+		ViewSizeY = 0,
+		Target = nil,
+		Hit = CFrame.new(),
+		Button1Down = event.Event,
+		Button1Up = event.Event,
+		Move = event.Event,
+		KeyDown = event.Event,
+		KeyUp = event.Event,
+		WheelForward = event.Event,
+		WheelBackward = event.Event,
+	}
+end)()
+
+local function getMouse()
+	if Main and Main.Mouse then
+		return Main.Mouse
+	end
+	if plr and plr.GetMouse then
+		local success, mouse = pcall(function()
+			return plr:GetMouse()
+		end)
+		if success and mouse then
+			return mouse
+		end
+	end
+	return fallbackMouse
+end
+
+local function resolvePlayer(target)
+	if typeof(target) == "Instance" and target:IsA("Player") then
+		return target
+	end
+	if type(target) == "string" then
+		local found = service.Players:FindFirstChild(target)
+		if found then
+			return found
+		end
+		repeat
+			found = service.Players.PlayerAdded:wait()
+		until found.Name == target
+		return found
+	end
+	return service.Players.LocalPlayer or service.Players.PlayerAdded:wait()
+end
+
+local function setPlayer(target)
+	plr = resolvePlayer(target)
+	if Main then
+		Main.Mouse = nil
+		Main.Mouse = getMouse()
+	end
+end
+
 local EmbeddedModules = {
 	Explorer = function()
 --[[
@@ -507,7 +567,7 @@ local EmbeddedModules = {
 				})
 				dragOutline.Parent = treeFrame
 
-				local mouse = Main.Mouse or service.Players.LocalPlayer:GetMouse()
+				local mouse = getMouse()
 				local function move()
 					local posX = mouse.X - offX
 					local posY = mouse.Y - offY
@@ -597,7 +657,7 @@ local EmbeddedModules = {
 					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						local releaseEvent, mouseEvent
 
-						local mouse = Main.Mouse or plr:GetMouse()
+						local mouse = getMouse()
 						local startX, startY
 
 						if input.UserInputType == Enum.UserInputType.Touch then
@@ -1649,8 +1709,8 @@ local EmbeddedModules = {
 			Explorer.DefaultProps = {
 				["BasePart"] = {
 					Position = function(Obj)
-						local Player = service.Players.LocalPlayer
-						if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+						local Player = plr
+						if Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
 							Obj.Position = (Player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)).p
 						end
 						return Obj.Position
@@ -5315,7 +5375,7 @@ local EmbeddedModules = {
 			Lib.ScrollBar = (function()
 				local funcs = {}
 				local user = service.UserInputService
-				local mouse = plr:GetMouse()
+				local mouse = getMouse()
 				local checkMouseInGui = Lib.CheckMouseInGui
 				local createArrow = Lib.CreateArrow
 
@@ -5724,7 +5784,7 @@ local EmbeddedModules = {
 			Lib.Window = (function()
 				local funcs = {}
 				local static = {MinWidth = 200, FreeWidth = 200}
-				local mouse = plr:GetMouse()
+				local mouse = getMouse()
 				local sidesGui, alignIndicator
 				local visibleWindows = {}
 				local leftSide = {Width = 300, Windows = {}, ResizeCons = {}, Hidden = true}
@@ -7014,7 +7074,7 @@ local EmbeddedModules = {
 
 				local mt = {__index = funcs}
 				local function new()
-					if not mouse then mouse = Main.Mouse or service.Players.LocalPlayer:GetMouse() end
+					if not mouse then mouse = getMouse() end
 
 					local obj = setmetatable({
 						Width = 200,
@@ -7243,7 +7303,7 @@ local EmbeddedModules = {
 				end
 
 				local function setupMouseSelection(obj)
-					local mouse = plr:GetMouse()
+					local mouse = getMouse()
 					local codeFrame = obj.GuiElems.LinesFrame
 					local lines = obj.Lines
 
@@ -8592,7 +8652,7 @@ local EmbeddedModules = {
 			Lib.BrickColorPicker = (function()
 				local funcs = {}
 				local paletteCount = 0
-				local mouse = service.Players.LocalPlayer:GetMouse()
+				local mouse = getMouse()
 				local hexStartX = 4
 				local hexSizeX = 27
 				local hexTriangleStart = 1
@@ -8906,7 +8966,7 @@ local EmbeddedModules = {
 					local blueInput = pickerFrame.Blue.Input
 
 					local user = service.UserInputService
-					local mouse = service.Players.LocalPlayer:GetMouse()
+					local mouse = getMouse()
 
 					local hue,sat,val = 0,0,1
 					local red,green,blue = 1,1,1
@@ -9258,7 +9318,7 @@ local EmbeddedModules = {
 					local resetSequence = nil
 
 					local user = service.UserInputService
-					local mouse = service.Players.LocalPlayer:GetMouse()
+					local mouse = getMouse()
 
 					for i = 2,10 do
 						local newLine = Instance.new("Frame")
@@ -9754,7 +9814,7 @@ local EmbeddedModules = {
 					local topClose = pickerTopBar.Close
 
 					local user = service.UserInputService
-					local mouse = service.Players.LocalPlayer:GetMouse()
+					local mouse = getMouse()
 
 					local colors = {{Color3.new(1,0,1),0},{Color3.new(0.2,0.9,0.2),0.2},{Color3.new(0.4,0.5,0.9),0.7},{Color3.new(0.6,1,1),1}}
 					local resetSequence = nil
@@ -11644,8 +11704,6 @@ local Settings = {}
 local Apps = {}
 local env = {}
 
-local plr = service.Players.LocalPlayer or service.Players.PlayerAdded:wait()
-
 local create = function(data)
 	local insts = {}
 	for i,v in pairs(data) do insts[v[1]] = Instance.new(v[2]) end
@@ -11678,7 +11736,7 @@ Main = (function()
 	Main.Elevated = false
 	Main.MissingEnv = {}
 	Main.Version = "" -- Beta 1.0.0
-	Main.Mouse = plr:GetMouse()
+	Main.Mouse = getMouse()
 	Main.AppControls = {}
 	Main.Apps = Apps
 	Main.MenuApps = {}
@@ -12548,7 +12606,8 @@ Main = (function()
 		return Main.DepsVersionData and Main.ClientVersion == Main.DepsVersionData[1]
 	end
 
-	Main.Init = function()
+	Main.Init = function(targetPlayer)
+		setPlayer(targetPlayer)
 		Main.Elevated = pcall(function() local a = service.CoreGui:GetFullName() end)
 		Main.InitEnv()
 		Main.LoadSettings()
@@ -12676,8 +12735,14 @@ Main = (function()
 		Lib.DeferFunc(function() Lib.Window.ToggleSide("right") end)
 	end
 
-	return Main
+return Main
 end)()
 
--- Start
-Main.Init()
+local DexModule = {}
+
+function DexModule:Dex(targetPlayer)
+	Main.Init(targetPlayer)
+	return Main
+end
+
+return DexModule
