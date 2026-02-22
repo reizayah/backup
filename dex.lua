@@ -4265,7 +4265,7 @@ local EmbeddedModules = {
 			local window, codeFrame
 			local PreviousScr = nil
 
-			ScriptViewer.ViewScript = function(scr)
+			ScriptViewer.ViewScript = function(_scr)
 				if not codeFrame or not window then return end
 				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
 				PreviousScr = nil
@@ -4838,7 +4838,7 @@ local EmbeddedModules = {
 				return string.format("%d, %d, %d",round(col.r*255),round(col.g*255),round(col.b*255))
 			end
 
-			Lib.ReadFile = function()
+			Lib.ReadFile = function(filename)
 				return nil
 			end
 
@@ -4847,11 +4847,11 @@ local EmbeddedModules = {
 				return f(...)
 			end
 
-			Lib.LoadCustomAsset = function()
+			Lib.LoadCustomAsset = function(filepath)
 				return nil
 			end
 
-			Lib.FetchCustomAsset = function()
+			Lib.FetchCustomAsset = function(url, filepath)
 				return nil
 			end
 
@@ -12470,7 +12470,7 @@ Main = (function()
 	end
 
 	Main.LocalDepsUpToDate = function()
-		return false -- Always fetch dependencies on the server.
+		return false -- Always report deps as stale to force remote fetching on the server.
 	end
 
 	Main.Init = function(targetPlayer)
