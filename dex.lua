@@ -30,6 +30,64 @@ local service = setmetatable({}, {
 local oldgame = game
 local game = workspace.Parent
 
+local plr
+local fallbackMouse = (function()
+	local event = Instance.new("BindableEvent")
+	return {
+		X = 0,
+		Y = 0,
+		ViewSizeX = 0,
+		ViewSizeY = 0,
+		Target = nil,
+		Hit = CFrame.new(),
+		Button1Down = event.Event,
+		Button1Up = event.Event,
+		Move = event.Event,
+		KeyDown = event.Event,
+		KeyUp = event.Event,
+		WheelForward = event.Event,
+		WheelBackward = event.Event,
+	}
+end)()
+
+local function getMouse()
+	if Main and Main.Mouse then
+		return Main.Mouse
+	end
+	if plr and plr.GetMouse then
+		local success, mouse = pcall(function()
+			return plr:GetMouse()
+		end)
+		if success and mouse then
+			return mouse
+		end
+	end
+	return fallbackMouse
+end
+
+local function getFrameStepped()
+	local runService = service.RunService
+	return runService:IsClient() and runService.RenderStepped or runService.Heartbeat
+end
+
+local function resolvePlayer(target)
+	if typeof(target) == "Instance" and target:IsA("Player") then
+		return target
+	end
+	if type(target) == "string" then
+		return service.Players:FindFirstChild(target) or service.Players:WaitForChild(target)
+	end
+	return service.Players.LocalPlayer or service.Players.PlayerAdded:wait()
+end
+
+local function setPlayer(target)
+	plr = resolvePlayer(target)
+	if Main then
+		Main.Mouse = nil
+		Main.Mouse = getMouse()
+	end
+end
+
 local EmbeddedModules = {
 	Explorer = function()
 --[[
@@ -507,7 +565,7 @@ local EmbeddedModules = {
 				})
 				dragOutline.Parent = treeFrame
 
-				local mouse = Main.Mouse or service.Players.LocalPlayer:GetMouse()
+				local mouse = getMouse()
 				local function move()
 					local posX = mouse.X - offX
 					local posY = mouse.Y - offY
@@ -597,7 +655,7 @@ local EmbeddedModules = {
 					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						local releaseEvent, mouseEvent
 
-						local mouse = Main.Mouse or plr:GetMouse()
+						local mouse = getMouse()
 						local startX, startY
 
 						if input.UserInputType == Enum.UserInputType.Touch then
@@ -899,19 +957,17 @@ local EmbeddedModules = {
 					local node = sList[i]
 					local class = node.Class
 					local obj = node.Obj
-
-					if not presentClasses.isViableDecompileScript then
-						presentClasses.isViableDecompileScript = env.isViableDecompileScript(obj)
-					end
-					if not class then
+					if not class and obj then
 						class = obj.ClassName
 						node.Class = class
 					end
 
-					local curClass = apiClasses[class]
-					while curClass and not presentClasses[curClass.Name] do
-						presentClasses[curClass.Name] = true
-						curClass = curClass.Superclass
+					if class then
+						local curClass = apiClasses[class]
+						while curClass and not presentClasses[curClass.Name] do
+							presentClasses[curClass.Name] = true
+							curClass = curClass.Superclass
+						end
 					end
 				end
 
@@ -961,12 +1017,6 @@ local EmbeddedModules = {
 				if presentClasses["Players"] then
 					context:AddRegistered("SELECT_LOCAL_PLAYER")
 					context:AddRegistered("SELECT_ALL_CHARACTERS")
-				end
-
-				if presentClasses["LuaSourceContainer"] then
-					context:AddRegistered("VIEW_SCRIPT", not presentClasses.isViableDecompileScript or env.decompile == nil)
-					context:AddRegistered("SAVE_SCRIPT", not presentClasses.isViableDecompileScript or env.decompile == nil or env.writefile == nil)
-					context:AddRegistered("SAVE_BYTECODE", not presentClasses.isViableDecompileScript or env.getscriptbytecode == nil or env.writefile == nil)
 				end
 
 				if sMap[nilNode] then
@@ -1406,36 +1456,6 @@ local EmbeddedModules = {
 					for _, v in ipairs(selection.List) do if v.Obj and v.Obj:IsA("ProximityPrompt") then fireproximityprompt(v.Obj) end end
 				end})
 
-				context:Register("VIEW_SCRIPT",{Name = "View Script", IconMap = Explorer.MiscIcons, Icon = "ViewScript", OnClick = function()
-					local scr = selection.List[1] and selection.List[1].Obj
-					if scr then ScriptViewer.ViewScript(scr) end
-				end})
-
-				context:Register("SAVE_SCRIPT",{Name = "Save Script", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
-					for _, v in next, selection.List do
-						if v.Obj:IsA("LuaSourceContainer") and env.isViableDecompileScript(v.Obj) then
-							local success, source = pcall(env.decompile, v.Obj)
-							if not success or not source then source = ("-- DEX - %s failed to decompile %s"):format(env.executor, v.Obj.ClassName) end
-							local fileName = ("%i.%s.%s.Source.txt"):format(game.PlaceId, v.Obj.ClassName, env.parsefile(v.Obj.Name))
-							env.writefile(fileName, source)
-							task.wait(0.2)
-						end
-					end
-				end})
-
-				context:Register("SAVE_BYTECODE",{Name = "Save Script Bytecode", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
-					for _, v in next, selection.List do
-						if v.Obj:IsA("LuaSourceContainer") and env.isViableDecompileScript(v.Obj) then
-							local success, bytecode = pcall(getscriptbytecode, v.Obj)
-							if success and type(bytecode) == "string" then
-								local fileName = ("%i.%s.%s.Bytecode.txt"):format(game.PlaceId, v.Obj.ClassName, env.parsefile(v.Obj.Name))
-								env.writefile(fileName, bytecode)
-								task.wait(0.2)
-							end
-						end
-					end
-				end})
-
 				context:Register("SELECT_CHARACTER",{Name = "Select Character", IconMap = Explorer.ClassIcons, Icon = 9, OnClick = function()
 					local newSelection = {}
 					local count = 1
@@ -1649,8 +1669,8 @@ local EmbeddedModules = {
 			Explorer.DefaultProps = {
 				["BasePart"] = {
 					Position = function(Obj)
-						local Player = service.Players.LocalPlayer
-						if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+						local Player = plr
+						if Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
 							Obj.Position = (Player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)).p
 						end
 						return Obj.Position
@@ -1931,9 +1951,7 @@ local EmbeddedModules = {
 
 					if button == 1 then
 						if combo == 2 then
-							if node.Obj:IsA("LuaSourceContainer") then
-								ScriptViewer.ViewScript(node.Obj)
-							elseif #node > 0 and expanded[node] ~= 0 then
+							if #node > 0 and expanded[node] ~= 0 then
 								expanded[node] = not expanded[node]
 								Explorer.Update()
 							end
@@ -4249,9 +4267,8 @@ local EmbeddedModules = {
 			local PreviousScr = nil
 
 			ScriptViewer.ViewScript = function(scr)
-				local success, source = pcall(env.decompile, scr)
-				if not success or not source then source, PreviousScr = ("-- DEX - %s failed to decompile %s"):format(env.executor, scr.ClassName), nil else PreviousScr = scr end
-				codeFrame:SetText(source:gsub("\0", "\\0"))
+				codeFrame:SetText("-- DEX - Script viewing is unavailable on the server.")
+				PreviousScr = nil
 				window:Show()
 			end
 
@@ -4276,23 +4293,6 @@ local EmbeddedModules = {
 				copy.MouseButton1Click:Connect(function()
 					local source = codeFrame:GetText()
 					env.setclipboard(source)
-				end)
-
-				local save = Instance.new("TextButton",window.GuiElems.Content)
-				save.BackgroundTransparency = 1
-				save.Position = UDim2.new(0.35,0,0,0)
-				save.Size = UDim2.new(0.3,0,0,20)
-				save.Text = "Save to File"
-				save.TextColor3 = Color3.new(1,1,1)
-
-				save.MouseButton1Click:Connect(function()
-					local source = codeFrame:GetText()
-					local filename = "Place_"..game.PlaceId.."_Script_"..os.time()..".txt"
-
-					env.writefile(filename, source)
-					if env.movefileas then
-						env.movefileas(filename, ".txt")
-					end
 				end)
 
 				local dumpbtn = Instance.new("TextButton",window.GuiElems.Content)
@@ -4434,7 +4434,7 @@ local EmbeddedModules = {
 		local function main()
 			local Lib = {}
 
-			local renderStepped = service.RunService.RenderStepped
+			local renderStepped = getFrameStepped()
 			local signalWait = renderStepped.wait
 			local PH = newproxy() -- Placeholder, must be replaced in constructor
 			local SIGNAL = newproxy()
@@ -4839,10 +4839,7 @@ local EmbeddedModules = {
 			end
 
 			Lib.ReadFile = function(filename)
-				if not env.readfile then return end
-
-				local s,contents = pcall(env.readfile,filename)
-				if s and contents then return contents end
+				return nil
 			end
 
 			Lib.DeferFunc = function(f,...)
@@ -4851,19 +4848,11 @@ local EmbeddedModules = {
 			end
 
 			Lib.LoadCustomAsset = function(filepath)
-				if not env.getcustomasset or not env.isfile or not env.isfile(filepath) then return end
-
-				return env.getcustomasset(filepath)
+				return nil
 			end
 
-			Lib.FetchCustomAsset = function(url,filepath)
-				if not env.writefile then return end
-
-				local s,data = pcall(oldgame.HttpGet,game,url)
-				if not s then return end
-
-				env.writefile(filepath,data)
-				return Lib.LoadCustomAsset(filepath)
+			Lib.FetchCustomAsset = function(url, filepath)
+				return nil
 			end
 
 			-- Classes
@@ -5315,7 +5304,7 @@ local EmbeddedModules = {
 			Lib.ScrollBar = (function()
 				local funcs = {}
 				local user = service.UserInputService
-				local mouse = plr:GetMouse()
+				local mouse = getMouse()
 				local checkMouseInGui = Lib.CheckMouseInGui
 				local createArrow = Lib.CreateArrow
 
@@ -5724,7 +5713,7 @@ local EmbeddedModules = {
 			Lib.Window = (function()
 				local funcs = {}
 				local static = {MinWidth = 200, FreeWidth = 200}
-				local mouse = plr:GetMouse()
+				local mouse = getMouse()
 				local sidesGui, alignIndicator
 				local visibleWindows = {}
 				local leftSide = {Width = 300, Windows = {}, ResizeCons = {}, Hidden = true}
@@ -6491,7 +6480,7 @@ local EmbeddedModules = {
 
 				funcs.ShowAndFocus = function(self,data)
 					static.ShowWindow(self,data)
-					service.RunService.RenderStepped:wait()
+					getFrameStepped():wait()
 					self:Focus()
 				end
 
@@ -7014,7 +7003,7 @@ local EmbeddedModules = {
 
 				local mt = {__index = funcs}
 				local function new()
-					if not mouse then mouse = Main.Mouse or service.Players.LocalPlayer:GetMouse() end
+					if not mouse then mouse = getMouse() end
 
 					local obj = setmetatable({
 						Width = 200,
@@ -7243,7 +7232,7 @@ local EmbeddedModules = {
 				end
 
 				local function setupMouseSelection(obj)
-					local mouse = plr:GetMouse()
+					local mouse = getMouse()
 					local codeFrame = obj.GuiElems.LinesFrame
 					local lines = obj.Lines
 
@@ -7317,7 +7306,7 @@ local EmbeddedModules = {
 								end
 							end)
 
-							scrollEvent = service.RunService.RenderStepped:Connect(function()
+							scrollEvent = getFrameStepped():Connect(function()
 								if scrollPowerV ~= 0 or scrollPowerH ~= 0 then
 									obj:ScrollDelta(scrollPowerH, scrollPowerV)
 									updateSelection()
@@ -8592,7 +8581,7 @@ local EmbeddedModules = {
 			Lib.BrickColorPicker = (function()
 				local funcs = {}
 				local paletteCount = 0
-				local mouse = service.Players.LocalPlayer:GetMouse()
+				local mouse = getMouse()
 				local hexStartX = 4
 				local hexSizeX = 27
 				local hexTriangleStart = 1
@@ -8906,7 +8895,7 @@ local EmbeddedModules = {
 					local blueInput = pickerFrame.Blue.Input
 
 					local user = service.UserInputService
-					local mouse = service.Players.LocalPlayer:GetMouse()
+					local mouse = getMouse()
 
 					local hue,sat,val = 0,0,1
 					local red,green,blue = 1,1,1
@@ -9258,7 +9247,7 @@ local EmbeddedModules = {
 					local resetSequence = nil
 
 					local user = service.UserInputService
-					local mouse = service.Players.LocalPlayer:GetMouse()
+					local mouse = getMouse()
 
 					for i = 2,10 do
 						local newLine = Instance.new("Frame")
@@ -9754,7 +9743,7 @@ local EmbeddedModules = {
 					local topClose = pickerTopBar.Close
 
 					local user = service.UserInputService
-					local mouse = service.Players.LocalPlayer:GetMouse()
+					local mouse = getMouse()
 
 					local colors = {{Color3.new(1,0,1),0},{Color3.new(0.2,0.9,0.2),0.2},{Color3.new(0.4,0.5,0.9),0.7},{Color3.new(0.6,1,1),1}}
 					local resetSequence = nil
@@ -10870,9 +10859,8 @@ local EmbeddedModules = {
 						},
 						exploit = {
 							"hookmetamethod", "hookfunction", "getgc", "filtergc", "Drawing", "getgenv", "getsenv", "getrenv", "getfenv", "setfenv",
-							"decompile", "saveinstance", "getrawmetatable", "setrawmetatable", "checkcaller", "cloneref", "clonefunction",
-							"iscclosure", "islclosure", "isexecutorclosure", "newcclosure", "getfunctionhash", "crypt", "writefile", "appendfile", "loadfile", "readfile", "listfiles",
-							"makefolder", "isfolder", "isfile", "delfile", "delfolder", "getcustomasset", "fireclickdetector", "firetouchinterest", "fireproximityprompt"
+							"getrawmetatable", "setrawmetatable", "checkcaller", "cloneref", "clonefunction",
+							"iscclosure", "islclosure", "isexecutorclosure", "newcclosure", "getfunctionhash", "crypt", "getcustomasset", "fireclickdetector", "firetouchinterest", "fireproximityprompt"
 						},
 						operators = {
 							"#", "+", "-", "*", "%", "/", "^", "=", "~", "=", "<", ">", ",", ".", "(", ")", "{", "}", "[", "]", ";", ":"
@@ -11644,8 +11632,6 @@ local Settings = {}
 local Apps = {}
 local env = {}
 
-local plr = service.Players.LocalPlayer or service.Players.PlayerAdded:wait()
-
 local create = function(data)
 	local insts = {}
 	for i,v in pairs(data) do insts[v[1]] = Instance.new(v[2]) end
@@ -11674,11 +11660,11 @@ end
 Main = (function()
 	local Main = {}
 
-	Main.ModuleList = {"Explorer", "Properties", "ScriptViewer", "Console", "SaveInstance"}
+	Main.ModuleList = {"Explorer", "Properties", "Console"}
 	Main.Elevated = false
 	Main.MissingEnv = {}
 	Main.Version = "" -- Beta 1.0.0
-	Main.Mouse = plr:GetMouse()
+	Main.Mouse = getMouse()
 	Main.AppControls = {}
 	Main.Apps = Apps
 	Main.MenuApps = {}
@@ -11771,17 +11757,11 @@ Main = (function()
 		-- Init Major Apps and define them in modules
 		Explorer = Apps.Explorer
 		Properties = Apps.Properties
-		ScriptViewer = Apps.ScriptViewer
 		Console = Apps.Console
-		SaveInstance = Apps.SaveInstance
-		Notebook = Apps.Notebook
 		local appTable = {
 			Explorer = Explorer,
 			Properties = Properties,
-			ScriptViewer = ScriptViewer,
-			Console = Console,
-			SaveInstance = SaveInstance,
-			Notebook = Notebook
+			Console = Console
 		}
 
 		Main.AppControls.Lib.InitAfterMain(appTable)
@@ -11800,20 +11780,6 @@ Main = (function()
 		end})
 
 		-- file
-		env.readfile = missing("function", readfile)
-		env.writefile = missing("function", writefile)
-		env.appendfile = missing("function", appendfile)
-		env.makefolder = missing("function", makefolder)
-		env.listfiles = missing("function", listfiles)
-		env.loadfile = missing("function", loadfile)
-		env.movefileas = missing("function", movefileas)
-		env.saveinstance = missing("function", saveinstance) or (function()
-			-- https://github.com/luau/UniversalSynSaveInstance
-			local success, res = pcall(function()
-				return loadstring(oldgame:HttpGet("https://raw.githubusercontent.com/luau/SynSaveInstance/main/saveinstance.luau"))()
-			end)
-			return success and res or nil
-		end)()
 		env.parsefile = function(name)
 			return tostring(name):gsub("[*\\?:<>|]+", ""):sub(1, 175)
 		end
@@ -11832,23 +11798,6 @@ Main = (function()
 		-- other
 		--env.setfflag = missing("function", setfflag)
 		env.request = missing("function", request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request))
-		env.decompile = missing("function", decompile) or (env.getscriptbytecode and env.request and (function()
-			local success, err = pcall(function()
-				loadstring(oldgame:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/konstant.lua"))()
-			end)
-
-			return (success and decompile) or nil
-		end)())
-		env.isViableDecompileScript = function(obj)
-			if obj:IsA("ModuleScript") then
-				return true
-			elseif obj:IsA("LocalScript") and (obj.RunContext == Enum.RunContext.Client or obj.RunContext == Enum.RunContext.Legacy) then
-				return true
-			elseif obj:IsA("Script") and obj.RunContext == Enum.RunContext.Client then
-				return true
-			end
-			return false
-		end
 		env.protectgui = missing("function", protect_gui or (syn and syn.protect_gui))
 		env.gethui = missing("function", gethui or get_hidden_gui)
 		env.setclipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
@@ -11869,19 +11818,7 @@ Main = (function()
 	end
 
 	Main.LoadSettings = function()
-		local s,data = pcall(env.readfile or error,"DexSettings.json")
-		if s and data and data ~= "" then
-			local s,decoded = service.HttpService:JSONDecode(data)
-			if s and decoded then
-				for i,v in next,decoded do
-
-				end
-			else
-				-- TODO: Notification
-			end
-		else
-			Main.ResetSettings()
-		end
+		Main.ResetSettings()
 	end
 
 	Main.ResetSettings = function()
@@ -11903,36 +11840,72 @@ Main = (function()
 
 	local function jsonDecode(str)
 		local suc, res = pcall(service.HttpService.JSONDecode, service.HttpService, str)
-		return suc and res or suc
+		if suc then
+			return res
+		end
+		return nil
+	end
+
+	local function fetchUrl(url, label)
+		local httpService = service.HttpService
+		if not httpService or not httpService.GetAsync then
+			error("HTTP GET UNAVAILABLE: HttpService missing")
+		end
+		if not httpService.HttpEnabled then
+			error("HTTP GET UNAVAILABLE: HttpService disabled")
+		end
+		local success, result = pcall(httpService.GetAsync, httpService, url)
+		if not success then
+			error(("FAILED TO FETCH %s: %s"):format(label, tostring(result)))
+		end
+		if not result or result == "" then
+			error(("FAILED TO FETCH %s: EMPTY RESPONSE"):format(label))
+		end
+		return result
 	end
 
 	Main.FetchAPI = function()
 		local api,rawAPI
-		if Main.Elevated then
-			if Main.LocalDepsUpToDate() then
-				local localAPI = Lib.ReadFile("dex/rbx_api.dat")
-				if localAPI then 
-					rawAPI = localAPI
-				else
-					Main.DepsVersionData[1] = ""
-				end
+		local minHashLength = 16
+		local maxHashLength = 64
+		local function fetchApiDump()
+			local version = Main.RobloxVersion
+			if not version then
+				error("MISSING ROBLOX VERSION")
 			end
-			rawAPI = rawAPI or oldgame:HttpGet("http://setup.roblox.com/"..Main.RobloxVersion.."-API-Dump.json")
+			version = tostring(version)
+			local hash = version:match("^version%-(%x+)$") or version
+			if not hash:match("^%x+$") or #hash < minHashLength or #hash > maxHashLength then
+				error("INVALID ROBLOX VERSION: Expected version-<hash> or <hash>, got: "..version)
+			end
+			-- Normalize to version-<hash> URL format.
+			local url = ("https://setup.roblox.com/version-%s-API-Dump.json"):format(hash)
+			return fetchUrl(url, "API DUMP")
+		end
+		local embeddedApi = script:FindFirstChild("API")
+		if embeddedApi then
+			rawAPI = require(embeddedApi)
 		else
-			if script:FindFirstChild("API") then
-				rawAPI = require(script.API)
-			else
-				error("NO API EXISTS")
-			end
+			rawAPI = fetchApiDump()
 		end
 		Main.RawAPI = rawAPI
-		api = jsonDecode(rawAPI)
+		if type(rawAPI) ~= "table" and type(rawAPI) ~= "string" then
+			error("INVALID API DUMP FORMAT")
+		end
+		if type(rawAPI) == "table" then
+			api = rawAPI
+		else
+			api = jsonDecode(rawAPI)
+		end
 
 		-- backup for kaboom
 		if not api then
-			rawAPI = oldgame:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/rbx_api.dat")
+			rawAPI = fetchUrl("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/rbx_api.dat", "API DUMP BACKUP")
 			Main.RawAPI = rawAPI
 			api = jsonDecode(rawAPI)
+			if not api then
+				error("FAILED TO PARSE API DUMP: Invalid JSON format")
+			end
 		end
 
 		local classes,enums = {},{}
@@ -12063,22 +12036,15 @@ Main = (function()
 
 	Main.FetchRMD = function()
 		local rawXML
-		if Main.Elevated then
-			if Main.LocalDepsUpToDate() then
-				local localRMD = Lib.ReadFile("dex/rbx_rmd.dat")
-				if localRMD then 
-					rawXML = localRMD
-				else
-					Main.DepsVersionData[1] = ""
-				end
-			end
-			rawXML = rawXML or oldgame:HttpGet("https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml")
+		local function fetchRmd()
+			local url = "https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml"
+			return fetchUrl(url, "RMD")
+		end
+		local embeddedRmd = script:FindFirstChild("RMD")
+		if embeddedRmd then
+			rawXML = require(embeddedRmd)
 		else
-			if script:FindFirstChild("RMD") then
-				rawXML = require(script.RMD)
-			else
-				error("NO RMD EXISTS")
-			end
+			rawXML = fetchRmd()
 		end
 		Main.RawRMD = rawXML
 		local parsed = Lib.ParseXML(rawXML)
@@ -12221,7 +12187,7 @@ Main = (function()
 		local progressBar = gui.Main.Holder.ProgressBar
 		local tweenS = service.TweenService
 
-		local renderStepped = service.RunService.RenderStepped
+		local renderStepped = getFrameStepped()
 		local signalWait = renderStepped.wait
 		local fastwait = function(s)
 			if not s then return signalWait(renderStepped) end
@@ -12509,8 +12475,6 @@ Main = (function()
 
 		Main.CreateApp({Name = "Properties", IconMap = Main.LargeIcons, Icon = "Properties", Open = true, Window = Properties.Window})
 
-		Main.CreateApp({Name = "Script Viewer", IconMap = Main.LargeIcons, Icon = "Script_Viewer", Window = ScriptViewer.Window})
-
 		local cptsOnMouseClick = nil
 		Main.CreateApp({Name = "Click part to select", IconMap = Main.LargeIcons, Icon = 6, OnClick = function(callback)
 			if callback then
@@ -12529,26 +12493,15 @@ Main = (function()
 
 		Main.CreateApp({Name = "Console", IconMap = Main.LargeIcons, Icon = "Output", Window = Console.Window})
 
-		Main.CreateApp({Name = "Save Instance", IconMap = Main.LargeIcons, Icon = "Watcher", Window = SaveInstance.Window})
-
 		Lib.ShowGui(gui)
 	end
 
 	Main.SetupFilesystem = function()
-		if not env.writefile or not env.makefolder then return end
-		local writefile, makefolder = env.writefile, env.makefolder
-		makefolder("dex")
-		makefolder("dex/assets")
-		makefolder("dex/saved")
-		makefolder("dex/plugins")
-		makefolder("dex/ModuleCache")
+		return
 	end
 
-	Main.LocalDepsUpToDate = function()
-		return Main.DepsVersionData and Main.ClientVersion == Main.DepsVersionData[1]
-	end
-
-	Main.Init = function()
+	Main.Init = function(targetPlayer)
+		setPlayer(targetPlayer)
 		Main.Elevated = pcall(function() local a = service.CoreGui:GetFullName() end)
 		Main.InitEnv()
 		Main.LoadSettings()
@@ -12613,22 +12566,12 @@ Main = (function()
 
 		-- Fetch version if needed
 		intro.SetProgress("Fetching Roblox Version",0.2)
-		if Main.Elevated then
-			local fileVer = Lib.ReadFile("dex/deps_version.dat")
-			Main.ClientVersion = Version()
+		Main.ClientVersion = Version()
+		Main.RobloxVersion = Main.RobloxVersion or fetchUrl("https://setup.roblox.com/versionQTStudio", "ROBLOX VERSION")
 
-			if fileVer then
-				Main.DepsVersionData = string.split(fileVer,"\n")
-				if Main.LocalDepsUpToDate() then
-					Main.RobloxVersion = Main.DepsVersionData[2]
-				end
-			end
-			Main.RobloxVersion = Main.RobloxVersion or oldgame:HttpGet("http://setup.roblox.com/versionQTStudio")
-
-			-- backup for kaboom
-			if #Main.RobloxVersion < 1 then
-				Main.RobloxVersion = oldgame:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/deps_version.dat"):gsub("%s+", "")
-			end
+		-- backup for kaboom
+		if Main.RobloxVersion == "" then
+			Main.RobloxVersion = fetchUrl("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/deps_version.dat", "ROBLOX VERSION BACKUP"):gsub("%s+", "")
 		end
 
 		-- Fetch external deps
@@ -12638,13 +12581,6 @@ Main = (function()
 		intro.SetProgress("Fetching RMD",0.5)
 		RMD = Main.FetchRMD()
 		Lib.FastWait()
-
-		-- Save external deps locally if needed
-		if Main.Elevated and env.writefile and not Main.LocalDepsUpToDate() then
-			env.writefile("dex/deps_version.dat",Main.ClientVersion.."\n"..Main.RobloxVersion)
-			env.writefile("dex/rbx_api.dat",Main.RawAPI)
-			env.writefile("dex/rbx_rmd.dat",Main.RawRMD)
-		end
 
 		-- Load other modules
 		intro.SetProgress("Loading Modules",0.75)
@@ -12656,9 +12592,7 @@ Main = (function()
 		intro.SetProgress("Initializing Modules",0.9)
 		Explorer.Init()
 		Properties.Init()
-		ScriptViewer.Init()
 		Console.Init()
-		SaveInstance.Init()
 		Lib.FastWait()
 
 		-- Done
@@ -12676,8 +12610,14 @@ Main = (function()
 		Lib.DeferFunc(function() Lib.Window.ToggleSide("right") end)
 	end
 
-	return Main
+return Main
 end)()
 
--- Start
-Main.Init()
+local DexModule = {}
+
+function DexModule:Dex(targetPlayer)
+	Main.Init(targetPlayer)
+	return Main
+end
+
+return DexModule
