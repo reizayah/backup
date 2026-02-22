@@ -11846,10 +11846,14 @@ Main = (function()
 	Main.FetchAPI = function()
 		local api,rawAPI
 		local function fetchApiDump()
-			local url = "https://setup.roblox.com/"..Main.RobloxVersion.."-API-Dump.json"
+			local version = tostring(Main.RobloxVersion or ""):gsub("%s+", "")
+			local url = "https://setup.roblox.com/"..version.."-API-Dump.json"
 			local success, result = pcall(oldgame.HttpGet, oldgame, url)
-			if not success or not result then
-				error("FAILED TO FETCH API DUMP")
+			if not success then
+				error("FAILED TO FETCH API DUMP: "..tostring(result))
+			end
+			if not result or result == "" then
+				error("FAILED TO FETCH API DUMP: EMPTY RESPONSE")
 			end
 			return result
 		end
@@ -12003,8 +12007,11 @@ Main = (function()
 		local function fetchRmd()
 			local url = "https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml"
 			local success, result = pcall(oldgame.HttpGet, oldgame, url)
-			if not success or not result then
-				error("FAILED TO FETCH RMD")
+			if not success then
+				error("FAILED TO FETCH RMD: "..tostring(result))
+			end
+			if not result or result == "" then
+				error("FAILED TO FETCH RMD: EMPTY RESPONSE")
 			end
 			return result
 		end
