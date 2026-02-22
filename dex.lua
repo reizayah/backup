@@ -11840,12 +11840,15 @@ Main = (function()
 
 	local function jsonDecode(str)
 		local suc, res = pcall(service.HttpService.JSONDecode, service.HttpService, str)
-		return suc and res or suc
+		if suc then
+			return res
+		end
+		return nil
 	end
 
 	local function fetchUrl(url, label)
 		if not oldgame or not oldgame.HttpGet then
-			error("HTTP GET UNAVAILABLE: oldgame HttpGet missing")
+			error("HTTP GET UNAVAILABLE: Required game HttpGet is missing")
 		end
 		local success, result = pcall(oldgame.HttpGet, oldgame, url)
 		if not success then
