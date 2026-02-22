@@ -4268,7 +4268,7 @@ local EmbeddedModules = {
 
 			ScriptViewer.ViewScript = function()
 				if not codeFrame or not window then return end
-				codeFrame:SetText("-- DEX - Script viewing is disabled on the server.")
+				codeFrame:SetText("-- DEX - Script viewing requires client-side decompilation features.")
 				PreviousScr = nil
 				window:Show()
 			end
@@ -6481,7 +6481,7 @@ local EmbeddedModules = {
 
 				funcs.ShowAndFocus = function(self,data)
 					static.ShowWindow(self,data)
-					getFrameStepped():Wait()
+					getFrameStepped():wait()
 					self:Focus()
 				end
 
