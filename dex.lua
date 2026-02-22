@@ -11843,19 +11843,29 @@ Main = (function()
 		return suc and res or suc
 	end
 
+	local function fetchUrl(url, label)
+		if not oldgame or not oldgame.HttpGet then
+			error("HTTP GET UNAVAILABLE")
+		end
+		local success, result = pcall(oldgame.HttpGet, oldgame, url)
+		if not success then
+			error(("FAILED TO FETCH %s: %s"):format(label, tostring(result)))
+		end
+		if not result or result == "" then
+			error(("FAILED TO FETCH %s: EMPTY RESPONSE"):format(label))
+		end
+		return result
+	end
+
 	Main.FetchAPI = function()
 		local api,rawAPI
 		local function fetchApiDump()
 			local version = tostring(Main.RobloxVersion or ""):gsub("%s+", "")
+			if version == "" then
+				error("MISSING ROBLOX VERSION")
+			end
 			local url = "https://setup.roblox.com/"..version.."-API-Dump.json"
-			local success, result = pcall(oldgame.HttpGet, oldgame, url)
-			if not success then
-				error("FAILED TO FETCH API DUMP: "..tostring(result))
-			end
-			if not result or result == "" then
-				error("FAILED TO FETCH API DUMP: EMPTY RESPONSE")
-			end
-			return result
+			return fetchUrl(url, "API DUMP")
 		end
 		if Main.Elevated then
 			rawAPI = fetchApiDump()
@@ -12006,14 +12016,7 @@ Main = (function()
 		local rawXML
 		local function fetchRmd()
 			local url = "https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml"
-			local success, result = pcall(oldgame.HttpGet, oldgame, url)
-			if not success then
-				error("FAILED TO FETCH RMD: "..tostring(result))
-			end
-			if not result or result == "" then
-				error("FAILED TO FETCH RMD: EMPTY RESPONSE")
-			end
-			return result
+			return fetchUrl(url, "RMD")
 		end
 		if Main.Elevated then
 			rawXML = fetchRmd()
