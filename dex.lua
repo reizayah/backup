@@ -11845,13 +11845,21 @@ Main = (function()
 
 	Main.FetchAPI = function()
 		local api,rawAPI
+		local function fetchApiDump()
+			local url = "https://setup.roblox.com/"..Main.RobloxVersion.."-API-Dump.json"
+			local success, result = pcall(oldgame.HttpGet, oldgame, url)
+			if not success or not result then
+				error("FAILED TO FETCH API DUMP")
+			end
+			return result
+		end
 		if Main.Elevated then
-			rawAPI = oldgame:HttpGet("http://setup.roblox.com/"..Main.RobloxVersion.."-API-Dump.json")
+			rawAPI = fetchApiDump()
 		else
 			if script:FindFirstChild("API") then
 				rawAPI = require(script.API)
 			else
-				rawAPI = oldgame:HttpGet("http://setup.roblox.com/"..Main.RobloxVersion.."-API-Dump.json")
+				rawAPI = fetchApiDump()
 			end
 		end
 		Main.RawAPI = rawAPI
@@ -11992,13 +12000,21 @@ Main = (function()
 
 	Main.FetchRMD = function()
 		local rawXML
+		local function fetchRmd()
+			local url = "https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml"
+			local success, result = pcall(oldgame.HttpGet, oldgame, url)
+			if not success or not result then
+				error("FAILED TO FETCH RMD")
+			end
+			return result
+		end
 		if Main.Elevated then
-			rawXML = oldgame:HttpGet("https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml")
+			rawXML = fetchRmd()
 		else
 			if script:FindFirstChild("RMD") then
 				rawXML = require(script.RMD)
 			else
-				rawXML = oldgame:HttpGet("https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml")
+				rawXML = fetchRmd()
 			end
 		end
 		Main.RawRMD = rawXML
