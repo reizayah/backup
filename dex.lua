@@ -956,9 +956,8 @@ local EmbeddedModules = {
 				for i = 1, #sList do
 					local node = sList[i]
 					local class = node.Class
-					local obj = node.Obj
 					if not class then
-						class = obj.ClassName
+						class = node.Obj.ClassName
 						node.Class = class
 					end
 
@@ -4268,7 +4267,7 @@ local EmbeddedModules = {
 
 			ScriptViewer.ViewScript = function(scr)
 				if not codeFrame or not window then return end
-				codeFrame:SetText("-- DEX - Script viewing requires client-side decompilation features.")
+				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
 				PreviousScr = nil
 				window:Show()
 			end
@@ -12471,7 +12470,7 @@ Main = (function()
 	end
 
 	Main.LocalDepsUpToDate = function()
-		return false -- Local dependency caching is disabled on the server.
+		return false -- Always fetch dependencies on the server.
 	end
 
 	Main.Init = function(targetPlayer)
