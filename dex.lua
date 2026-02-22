@@ -11860,21 +11860,21 @@ Main = (function()
 	Main.FetchAPI = function()
 		local api,rawAPI
 		local function fetchApiDump()
-			local version = tostring(Main.RobloxVersion or ""):gsub("%s+", "")
+			local version = tostring(Main.RobloxVersion or "")
 			if version == "" then
 				error("MISSING ROBLOX VERSION")
+			end
+			if version:match("%s") or not version:match("^[%w%-]+$") then
+				error("INVALID ROBLOX VERSION")
 			end
 			local url = "https://setup.roblox.com/"..version.."-API-Dump.json"
 			return fetchUrl(url, "API DUMP")
 		end
-		if Main.Elevated then
-			rawAPI = fetchApiDump()
+		local embeddedApi = script:FindFirstChild("API")
+		if embeddedApi then
+			rawAPI = require(embeddedApi)
 		else
-			if script:FindFirstChild("API") then
-				rawAPI = require(script.API)
-			else
-				rawAPI = fetchApiDump()
-			end
+			rawAPI = fetchApiDump()
 		end
 		Main.RawAPI = rawAPI
 		api = jsonDecode(rawAPI)
@@ -12018,14 +12018,11 @@ Main = (function()
 			local url = "https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml"
 			return fetchUrl(url, "RMD")
 		end
-		if Main.Elevated then
-			rawXML = fetchRmd()
+		local embeddedRmd = script:FindFirstChild("RMD")
+		if embeddedRmd then
+			rawXML = require(embeddedRmd)
 		else
-			if script:FindFirstChild("RMD") then
-				rawXML = require(script.RMD)
-			else
-				rawXML = fetchRmd()
-			end
+			rawXML = fetchRmd()
 		end
 		Main.RawRMD = rawXML
 		local parsed = Lib.ParseXML(rawXML)
