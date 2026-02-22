@@ -11845,7 +11845,7 @@ Main = (function()
 
 	local function fetchUrl(url, label)
 		if not oldgame or not oldgame.HttpGet then
-			error("HTTP GET UNAVAILABLE")
+			error("HTTP GET UNAVAILABLE: oldgame HttpGet missing")
 		end
 		local success, result = pcall(oldgame.HttpGet, oldgame, url)
 		if not success then
@@ -11861,7 +11861,7 @@ Main = (function()
 		local api,rawAPI
 		local function fetchApiDump()
 			local version = tostring(Main.RobloxVersion or "")
-			local hash = version:match("^version%-(%x+)$")
+			local hash = version:match("^version%-(%x+)$") or version:match("^(%x+)$")
 			if not hash then
 				error("INVALID ROBLOX VERSION")
 			end
@@ -11875,7 +11875,11 @@ Main = (function()
 			rawAPI = fetchApiDump()
 		end
 		Main.RawAPI = rawAPI
-		api = jsonDecode(rawAPI)
+		if type(rawAPI) == "table" then
+			api = rawAPI
+		else
+			api = jsonDecode(rawAPI)
+		end
 
 		-- backup for kaboom
 		if not api then
