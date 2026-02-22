@@ -11847,10 +11847,14 @@ Main = (function()
 	end
 
 	local function fetchUrl(url, label)
-		if not oldgame or not oldgame.HttpGet then
-			error("HTTP GET UNAVAILABLE: Running without HttpGet access")
+		local httpService = service.HttpService
+		if not httpService or not httpService.GetAsync then
+			error("HTTP GET UNAVAILABLE: HttpService missing")
 		end
-		local success, result = pcall(oldgame.HttpGet, oldgame, url)
+		if not httpService.HttpEnabled then
+			error("HTTP GET UNAVAILABLE: HttpService disabled")
+		end
+		local success, result = pcall(httpService.GetAsync, httpService, url)
 		if not success then
 			error(("FAILED TO FETCH %s: %s"):format(label, tostring(result)))
 		end
