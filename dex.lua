@@ -12562,14 +12562,12 @@ Main = (function()
 
 		-- Fetch version if needed
 		intro.SetProgress("Fetching Roblox Version",0.2)
-		if Main.Elevated then
-			Main.ClientVersion = Version()
-			Main.RobloxVersion = Main.RobloxVersion or oldgame:HttpGet("http://setup.roblox.com/versionQTStudio")
+		Main.ClientVersion = Version()
+		Main.RobloxVersion = Main.RobloxVersion or fetchUrl("https://setup.roblox.com/versionQTStudio", "ROBLOX VERSION")
 
-			-- backup for kaboom
-			if #Main.RobloxVersion < 1 then
-				Main.RobloxVersion = oldgame:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/deps_version.dat"):gsub("%s+", "")
-			end
+		-- backup for kaboom
+		if Main.RobloxVersion == "" then
+			Main.RobloxVersion = fetchUrl("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/deps_version.dat", "ROBLOX VERSION BACKUP"):gsub("%s+", "")
 		end
 
 		-- Fetch external deps
