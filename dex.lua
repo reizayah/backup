@@ -4265,7 +4265,7 @@ local EmbeddedModules = {
 			local window, codeFrame
 			local PreviousScr = nil
 
-			ScriptViewer.ViewScript = function(_scr)
+			ScriptViewer.ViewScript = function(scr)
 				if not codeFrame or not window then return end
 				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
 				PreviousScr = nil
@@ -12470,7 +12470,7 @@ Main = (function()
 	end
 
 	Main.LocalDepsUpToDate = function()
-		return false -- Always report deps as stale to force remote fetching on the server.
+		return false -- Always report deps as out-of-date since file system access is unavailable on the server.
 	end
 
 	Main.Init = function(targetPlayer)
