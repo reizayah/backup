@@ -11851,7 +11851,7 @@ Main = (function()
 			if script:FindFirstChild("API") then
 				rawAPI = require(script.API)
 			else
-				error("NO API EXISTS")
+				rawAPI = oldgame:HttpGet("http://setup.roblox.com/"..Main.RobloxVersion.."-API-Dump.json")
 			end
 		end
 		Main.RawAPI = rawAPI
@@ -11998,7 +11998,7 @@ Main = (function()
 			if script:FindFirstChild("RMD") then
 				rawXML = require(script.RMD)
 			else
-				error("NO RMD EXISTS")
+				rawXML = oldgame:HttpGet("https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/ReflectionMetadata.xml")
 			end
 		end
 		Main.RawRMD = rawXML
