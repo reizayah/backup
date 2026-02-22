@@ -11861,10 +11861,11 @@ Main = (function()
 		local api,rawAPI
 		local function fetchApiDump()
 			local version = tostring(Main.RobloxVersion or "")
-			if not version:match("^version%-%w+$") then
+			local hash = version:match("^version%-(%x+)$")
+			if not hash then
 				error("INVALID ROBLOX VERSION")
 			end
-			local url = "https://setup.roblox.com/"..version.."-API-Dump.json"
+			local url = ("https://setup.roblox.com/version-%s-API-Dump.json"):format(hash)
 			return fetchUrl(url, "API DUMP")
 		end
 		local embeddedApi = script:FindFirstChild("API")
