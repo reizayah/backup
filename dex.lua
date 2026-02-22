@@ -4265,7 +4265,6 @@ local EmbeddedModules = {
 			local PreviousScr = nil
 
 			ScriptViewer.ViewScript = function(scr)
-				if not codeFrame or not window then return end
 				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
 				PreviousScr = nil
 				window:Show()
