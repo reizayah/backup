@@ -1949,9 +1949,7 @@ local EmbeddedModules = {
 
 					if button == 1 then
 						if combo == 2 then
-							if node.Obj:IsA("LuaSourceContainer") then
-								ScriptViewer.ViewScript(node.Obj)
-							elseif #node > 0 and expanded[node] ~= 0 then
+							if #node > 0 and expanded[node] ~= 0 then
 								expanded[node] = not expanded[node]
 								Explorer.Update()
 							end
@@ -4267,7 +4265,6 @@ local EmbeddedModules = {
 			local PreviousScr = nil
 
 			ScriptViewer.ViewScript = function(scr)
-				local _ = scr
 				if not codeFrame or not window then return end
 				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
 				PreviousScr = nil
@@ -11662,7 +11659,7 @@ end
 Main = (function()
 	local Main = {}
 
-	Main.ModuleList = {"Explorer", "Properties", "ScriptViewer", "Console"}
+	Main.ModuleList = {"Explorer", "Properties", "Console"}
 	Main.Elevated = false
 	Main.MissingEnv = {}
 	Main.Version = "" -- Beta 1.0.0
@@ -11759,13 +11756,11 @@ Main = (function()
 		-- Init Major Apps and define them in modules
 		Explorer = Apps.Explorer
 		Properties = Apps.Properties
-		ScriptViewer = Apps.ScriptViewer
 		Console = Apps.Console
 		Notebook = Apps.Notebook
 		local appTable = {
 			Explorer = Explorer,
 			Properties = Properties,
-			ScriptViewer = ScriptViewer,
 			Console = Console,
 			Notebook = Notebook
 		}
@@ -11786,14 +11781,6 @@ Main = (function()
 		end})
 
 		-- file
-		env.readfile = nil
-		env.writefile = nil
-		env.appendfile = nil
-		env.makefolder = nil
-		env.listfiles = nil
-		env.loadfile = nil
-		env.movefileas = nil
-		env.saveinstance = nil
 		env.parsefile = function(name)
 			return tostring(name):gsub("[*\\?:<>|]+", ""):sub(1, 175)
 		end
@@ -12444,8 +12431,6 @@ Main = (function()
 
 		Main.CreateApp({Name = "Properties", IconMap = Main.LargeIcons, Icon = "Properties", Open = true, Window = Properties.Window})
 
-		Main.CreateApp({Name = "Script Viewer", IconMap = Main.LargeIcons, Icon = "Script_Viewer", Window = ScriptViewer.Window})
-
 		local cptsOnMouseClick = nil
 		Main.CreateApp({Name = "Click part to select", IconMap = Main.LargeIcons, Icon = 6, OnClick = function(callback)
 			if callback then
@@ -12469,10 +12454,6 @@ Main = (function()
 
 	Main.SetupFilesystem = function()
 		return
-	end
-
-	Main.LocalDepsUpToDate = function()
-		return false -- Always return false since file system access is unavailable on the server.
 	end
 
 	Main.Init = function(targetPlayer)
@@ -12569,7 +12550,6 @@ Main = (function()
 		intro.SetProgress("Initializing Modules",0.9)
 		Explorer.Init()
 		Properties.Init()
-		ScriptViewer.Init()
 		Console.Init()
 		Lib.FastWait()
 
