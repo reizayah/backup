@@ -11870,8 +11870,8 @@ Main = (function()
 				error("MISSING ROBLOX VERSION")
 			end
 			version = tostring(version)
-			local hash = version:match("^version%-(%x+)$") or version:match("^(%x+)$")
-			if not hash or not hash:match("^%x+$") or #hash < minHashLength or #hash > maxHashLength then
+			local hash = version:match("^version%-(%x+)$") or version
+			if not hash:match("^%x+$") or #hash < minHashLength or #hash > maxHashLength then
 				error("INVALID ROBLOX VERSION: Expected version-<hash> or <hash>, got: "..version)
 			end
 			-- Normalize to version-<hash> URL format.
@@ -11885,6 +11885,9 @@ Main = (function()
 			rawAPI = fetchApiDump()
 		end
 		Main.RawAPI = rawAPI
+		if type(rawAPI) ~= "table" and type(rawAPI) ~= "string" then
+			error("INVALID API DUMP FORMAT")
+		end
 		if type(rawAPI) == "table" then
 			api = rawAPI
 		else
