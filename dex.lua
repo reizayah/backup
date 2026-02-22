@@ -956,8 +956,9 @@ local EmbeddedModules = {
 				for i = 1, #sList do
 					local node = sList[i]
 					local class = node.Class
-					if not class then
-						class = node.Obj.ClassName
+					local obj = node.Obj
+					if obj and not class then
+						class = obj.ClassName
 						node.Class = class
 					end
 
@@ -4266,6 +4267,7 @@ local EmbeddedModules = {
 			local PreviousScr = nil
 
 			ScriptViewer.ViewScript = function(scr)
+				local _ = scr
 				if not codeFrame or not window then return end
 				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
 				PreviousScr = nil
@@ -12470,7 +12472,7 @@ Main = (function()
 	end
 
 	Main.LocalDepsUpToDate = function()
-		return false -- Always report deps as out-of-date since file system access is unavailable on the server.
+		return false -- Always return false since file system access is unavailable on the server.
 	end
 
 	Main.Init = function(targetPlayer)
