@@ -11861,10 +11861,7 @@ Main = (function()
 		local api,rawAPI
 		local function fetchApiDump()
 			local version = tostring(Main.RobloxVersion or "")
-			if version == "" then
-				error("MISSING ROBLOX VERSION")
-			end
-			if version:match("%s") or not version:match("^[%w%-]+$") then
+			if not version:match("^version%-%w+$") then
 				error("INVALID ROBLOX VERSION")
 			end
 			local url = "https://setup.roblox.com/"..version.."-API-Dump.json"
