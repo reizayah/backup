@@ -11871,9 +11871,10 @@ Main = (function()
 			end
 			version = tostring(version)
 			local hash = version:match("^version%-(%x+)$") or version:match("^(%x+)$")
-			if not hash or #hash < minHashLength or #hash > maxHashLength then
+			if not hash or not hash:match("^%x+$") or #hash < minHashLength or #hash > maxHashLength then
 				error("INVALID ROBLOX VERSION: Expected version-<hash> or <hash>, got: "..version)
 			end
+			-- Normalize to version-<hash> URL format.
 			local url = ("https://setup.roblox.com/version-%s-API-Dump.json"):format(hash)
 			return fetchUrl(url, "API DUMP")
 		end
@@ -11884,9 +11885,6 @@ Main = (function()
 			rawAPI = fetchApiDump()
 		end
 		Main.RawAPI = rawAPI
-		if type(rawAPI) == "string" and not rawAPI:match("^%s*[%[%{]") then
-			error("INVALID API DUMP FORMAT")
-		end
 		if type(rawAPI) == "table" then
 			api = rawAPI
 		else
