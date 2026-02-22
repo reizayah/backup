@@ -11863,9 +11863,13 @@ Main = (function()
 	Main.FetchAPI = function()
 		local api,rawAPI
 		local function fetchApiDump()
-			local version = tostring(Main.RobloxVersion or "")
+			local version = Main.RobloxVersion
+			if not version then
+				error("MISSING ROBLOX VERSION")
+			end
+			version = tostring(version)
 			local hash = version:match("^version%-(%x+)$") or version:match("^(%x+)$")
-			if not hash or not hash:match("^%x+$") or #hash > 64 then
+			if not hash or not hash:match("^%x+$") or #hash < 16 or #hash > 64 then
 				error("INVALID ROBLOX VERSION: Expected version-<hash> or <hash>, got: "..version)
 			end
 			local url = ("https://setup.roblox.com/version-%s-API-Dump.json"):format(hash)
@@ -11889,6 +11893,9 @@ Main = (function()
 			rawAPI = oldgame:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/rbx_api.dat")
 			Main.RawAPI = rawAPI
 			api = jsonDecode(rawAPI)
+			if not api then
+				error("FAILED TO PARSE API DUMP: Invalid JSON format")
+			end
 		end
 
 		local classes,enums = {},{}
