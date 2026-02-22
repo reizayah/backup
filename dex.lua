@@ -4266,7 +4266,7 @@ local EmbeddedModules = {
 			local window, codeFrame
 			local PreviousScr = nil
 
-			ScriptViewer.ViewScript = function()
+			ScriptViewer.ViewScript = function(scr)
 				if not codeFrame or not window then return end
 				codeFrame:SetText("-- DEX - Script viewing requires client-side decompilation features.")
 				PreviousScr = nil
@@ -11811,8 +11811,6 @@ Main = (function()
 		-- other
 		--env.setfflag = missing("function", setfflag)
 		env.request = missing("function", request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request))
-		env.decompile = nil
-		env.isViableDecompileScript = nil
 		env.protectgui = missing("function", protect_gui or (syn and syn.protect_gui))
 		env.gethui = missing("function", gethui or get_hidden_gui)
 		env.setclipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
@@ -12473,7 +12471,7 @@ Main = (function()
 	end
 
 	Main.LocalDepsUpToDate = function()
-		return false
+		return false -- Local dependency caching is disabled on the server.
 	end
 
 	Main.Init = function(targetPlayer)
