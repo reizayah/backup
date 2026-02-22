@@ -11848,7 +11848,7 @@ Main = (function()
 
 	local function fetchUrl(url, label)
 		if not oldgame or not oldgame.HttpGet then
-			error("HTTP GET UNAVAILABLE: Unable to fetch remote resources")
+			error("HTTP GET UNAVAILABLE: Running without HttpGet access")
 		end
 		local success, result = pcall(oldgame.HttpGet, oldgame, url)
 		if not success then
@@ -11862,6 +11862,8 @@ Main = (function()
 
 	Main.FetchAPI = function()
 		local api,rawAPI
+		local minHashLength = 16
+		local maxHashLength = 64
 		local function fetchApiDump()
 			local version = Main.RobloxVersion
 			if not version then
@@ -11869,7 +11871,7 @@ Main = (function()
 			end
 			version = tostring(version)
 			local hash = version:match("^version%-(%x+)$") or version:match("^(%x+)$")
-			if not hash or #hash < 16 or #hash > 64 then
+			if not hash or #hash < minHashLength or #hash > maxHashLength then
 				error("INVALID ROBLOX VERSION: Expected version-<hash> or <hash>, got: "..version)
 			end
 			local url = ("https://setup.roblox.com/version-%s-API-Dump.json"):format(hash)
@@ -11882,6 +11884,9 @@ Main = (function()
 			rawAPI = fetchApiDump()
 		end
 		Main.RawAPI = rawAPI
+		if type(rawAPI) == "string" and not rawAPI:match("^%s*[%[%{]") then
+			error("INVALID API DUMP FORMAT")
+		end
 		if type(rawAPI) == "table" then
 			api = rawAPI
 		else
