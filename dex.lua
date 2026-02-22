@@ -957,15 +957,17 @@ local EmbeddedModules = {
 					local node = sList[i]
 					local class = node.Class
 					local obj = node.Obj
-					if obj and not class then
+					if not class and obj then
 						class = obj.ClassName
 						node.Class = class
 					end
 
-					local curClass = apiClasses[class]
-					while curClass and not presentClasses[curClass.Name] do
-						presentClasses[curClass.Name] = true
-						curClass = curClass.Superclass
+					if class then
+						local curClass = apiClasses[class]
+						while curClass and not presentClasses[curClass.Name] do
+							presentClasses[curClass.Name] = true
+							curClass = curClass.Superclass
+						end
 					end
 				end
 
@@ -4265,7 +4267,7 @@ local EmbeddedModules = {
 			local PreviousScr = nil
 
 			ScriptViewer.ViewScript = function(scr)
-				codeFrame:SetText("-- DEX - Script viewing is not available on the server.")
+				codeFrame:SetText("-- DEX - Script viewing is unavailable on the server.")
 				PreviousScr = nil
 				window:Show()
 			end
@@ -11756,12 +11758,10 @@ Main = (function()
 		Explorer = Apps.Explorer
 		Properties = Apps.Properties
 		Console = Apps.Console
-		Notebook = Apps.Notebook
 		local appTable = {
 			Explorer = Explorer,
 			Properties = Properties,
-			Console = Console,
-			Notebook = Notebook
+			Console = Console
 		}
 
 		Main.AppControls.Lib.InitAfterMain(appTable)
